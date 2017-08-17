@@ -1,0 +1,64 @@
+1，源文件准备，可以到freertos官网上下载。
+	1)与FreeRTOS代码的核心包含在三个文件中：tasks.c、queue.c、list.c。这三个文件位于FreeRTOS/Source目录。
+
+		在该目录下还包含三个可选的文件：timers.c、event_groups.c、croutine.c，分别实现软件定时、事件组和协程功能。
+
+	2)与内存分配有关的文件共有5个，分别是heap_1.c,heap_2.c,heap_3.c,heap_4.c，heap_5.c，每个文件对应一个内存分配方案，最新版只需选择其中的1个，STM32F429选择heap_4.c。
+
+		每个分配方案介绍http://www.freertos.org/a00111.html 该文件位于Source\portable\MemMang。
+	
+	3) 与移植相关的代码包括port.c,portmacro.h。这些代码不但和编译器有关还和平台（MCU）有关。FreeRTOS先以编译器为大类，然后再以平台（MCU）为小类。在这里选择Keil编译器，平台为ARM_CM4F。
+
+		该文件位于Source\portable\RVDS\ARM_CM4F。
+
+
+
+2，在工程中加入Freertos文件。
+
+	加入的文件有list.c queue.c tasks.c  timers.c  heap_4.c，port.c
+
+3，在工程中加入Freertos文件的头文件路径
+
+	FreeRTOS内核相关的头文件FreeRTOS\Source\include。	portmacro.h该文件位于Source\portable\RVDS\ARM_CM4F。
+
+4，编译，提示错误，没有FreeRTOSConfig.h文件
+
+   	编写该文件对内核的配置,需要FreeRTOSConfig.h中的相关宏定义。建议：不需要重写该文件，直接从FreeRTOS\Demo下的样例（最好选择与自己编译平台、MCU同一类型的样例）中复制过来修改。
+
+5，在移植FreeRTOS的时候，需要用到STM32的三个中断，分别是SVC,PendSV和SysTick 这三个中断在向量表里面的名字分别是：SVC_Handler，PendSV_Handler和SysTick_Handler（在启动文件:startup_stm32f10x_hd.s中)
+
+  	而在port.c里面写的这三个中断的服务函数的名称跟向量表里面的名称不一样，为了中断响应之后能响应且返回port.c里面写好的中断服务函数，我们需要统一向量表和中断服务函数的名字。
+
+	因此在FreeRTOSConfig.h文件中统一定义三个宏：
+
+	#define vPortSVCHandler SVC_Handler
+	#define xPortPendSVHandler PendSV_Handler
+	#define xPortSysTickHandler SysTick_Handler
+
+6，到这里移植就完成了，是不是很简单？可以开始实现任务代码了，我在这里实现一个简单的任务，实现点亮LED灯。
+
+ 	xTaskCreate(USBD_Task,  "TASK_LED", configMINIMAL_STACK_SIZE, NULL, mainKEY_TASK_PRIORITY, NULL);
+ 
+	vTaskStartScheduler();
+   	 while(1)
+   	{
+       
+	}
+ 
+	注意：
+	是因为main文件中没有添加内核头文件：
+	// Kernel includes. 
+	#include "FreeRTOS.h"
+	#include "task.h"
+	#include "timers.h"
+	#include "semphr.h"
+
+	这个运行就一切正常了。
+ 
+
+
+
+
+
+
+ 
